@@ -6,6 +6,33 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+typedef enum { CMD_CD, CMD_EXTERNAL, CMD_EXIT } cmd_type_t;
+
+cmd_type_t dispatcher_handler(char **args) {
+  if (strcmp(args[0], "exit") == 0)
+    return CMD_EXIT;
+
+  if (strcmp(args[0], "cd") == 0) {
+    return CMD_CD;
+  }
+
+  return CMD_EXTERNAL;
+}
+
+void cmd_exit(char **args) {
+  if (strcmp(args[0], "exit") == 0) {
+    exit(0);
+  }
+}
+
+void cmd_cd(char **args) {
+  if (strcmp(args[0], "cd") == 0) {
+    if (chdir(args[1]) == -1) {
+      perror(NULL);
+    }
+  }
+}
+
 int parse_comand(char *line, char **args, int max_int) {
   if (line == 0)
     return 0;
@@ -51,9 +78,18 @@ int main() {
     char *args[20];
 
     parse_comand(line, args, 10);
+    cmd_type_t dispatcher = dispatcher_handler(args);
 
-    if (strcmp(args[0], "exit") == 0) {
+    switch (dispatcher) {
+    case CMD_EXIT:
+      free(line);
       exit(0);
+    case CMD_CD:
+      cmd_cd(args);
+      free(line);
+      continue;
+    case CMD_EXTERNAL:
+      break;
     }
 
     free(line);
@@ -61,7 +97,7 @@ int main() {
     pid_t pid = fork();
 
     if (pid == 0) {
-      execlp(args[0], args[0], args[1], args[2], NULL);
+      execvp(args[0], args);
       exit(1);
     } else if (pid > 0) {
       waitpid(pid, NULL, 0);
