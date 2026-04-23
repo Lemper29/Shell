@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -56,10 +57,17 @@ int parse_comand(char *line, char **args, int max_int) {
 }
 
 char *read_str() {
+  char s[100];
+  struct utsname buffer;
   char *line = NULL;
   size_t len = 0;
   ssize_t read;
 
+  if (uname(&buffer) < 0) {
+    exit(1);
+  }
+  printf("%s@%s: %s -> ", getenv("LOGNAME"), buffer.nodename,
+         getcwd(s, sizeof(s)));
   if ((read = getline(&line, &len, stdin)) == -1) {
     free(line);
     return NULL;
